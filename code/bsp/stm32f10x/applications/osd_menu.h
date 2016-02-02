@@ -33,7 +33,7 @@ extern void osd_sd_hd_mode_disp_clear(u8 data,u8 x,u8 y);
 extern void osd_sd_hd_mode_disp(u8 data,u8 x,u8 y);
 extern void filter_mode_disp_clear(u8 x,u8 y,u8 mode);
 extern void osd_battery_mode_disp(u8 data,u8 x,u8 y);
-
+extern void osd_line_1to4_all_disp(void);
 
 #define	LINE3_SPACE		8
 #define	LINE3_FONT_WIDTH	8

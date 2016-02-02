@@ -276,6 +276,8 @@ void adc_io_set(u16 val)
 // >1770 pc3 h,< pc3 l
 
 #define	PC3_LED_VAL		1770
+
+extern u8 battery_power;
 static void adc_check(void)
 {
 	rt_uint32_t adc_this;
@@ -283,40 +285,69 @@ static void adc_check(void)
 
 	adc_this = Get_agc_Value();
 
-	if(adc_this >= PC3_LED_VAL)
+	if(adc_this >= 1130)
 	{
-		GPIO_WriteBit(GPIOC, GPIO_Pin_3, Bit_SET);
+		battery_power = 100;
+		return;
 	}
-	else if(adc_this < PC3_LED_VAL)
-		GPIO_WriteBit(GPIOC, GPIO_Pin_3, Bit_RESET);
+
+	if(adc_this >= 1090)
+	{
+		battery_power = 90;
+		return;
+	}
+
+
 	
-	if(adc_this >= 1670)
+	if(adc_this >= 1040)
 	{
-		GPIO_WriteBit(GPIOC, GPIO_Pin_2, Bit_SET);
+		battery_power = 80;
+		return;
 	}
-	else 
-	{
-		GPIO_WriteBit(GPIOC, GPIO_Pin_2, Bit_RESET);
-	}
+
 	
-	if(adc_this >= 1570)
+	if(adc_this >= 990)
 	{
-		GPIO_WriteBit(GPIOC, GPIO_Pin_1, Bit_SET);
+		battery_power = 70;
+		return;
 	}
-	else 
-	{
-		GPIO_WriteBit(GPIOC, GPIO_Pin_1, Bit_RESET);
-	}
+
 	
-	if(adc_this >= 1470)
+	if(adc_this >= 950)
 	{
-		GPIO_WriteBit(GPIOC, GPIO_Pin_0, Bit_SET);
-	}
-	else 
+		battery_power = 60;
+		return;
+	}	
+	if(adc_this >= 910)
 	{
-		GPIO_WriteBit(GPIOC, GPIO_Pin_0, Bit_RESET);
+		battery_power = 50;
+		return;
+	}	
+	if(adc_this >= 870)
+	{
+		battery_power = 40;
+		return;
+	}	
+	if(adc_this >= 820)
+	{
+		battery_power = 30;
+		return;
+	}	
+	if(adc_this >= 770)
+	{
+		battery_power = 20;
+		return;
+	}	
+	if(adc_this >= 720)
+	{
+		battery_power = 10;
+		return;
+	}	
+	else
+		{
+		battery_power = 5;
+
 	}
-	
 }
 
 
@@ -345,7 +376,7 @@ void rt_adc_thread_entry(void* parameter)
 	u16 k;
 
 	rt_hw_adc_init();
-	adc_io_pin_init();
+	//adc_io_pin_init();
 	
     while(1)
 	{
@@ -360,16 +391,17 @@ void rt_adc_thread_entry(void* parameter)
 int rt_adc_ctl_init(void)
 {
 
-//	
-//    rt_thread_t init_thread;
+	
+	rt_thread_t init_thread;
 
-//    init_thread = rt_thread_create("adc",
-//                                   rt_adc_thread_entry, RT_NULL,
-//                                   4089, 10, 30);
-//    if (init_thread != RT_NULL)
-//        rt_thread_startup(init_thread);
+	init_thread = rt_thread_create("adc",
+								   rt_adc_thread_entry, RT_NULL,
+								   512, 10, 30);
+	if (init_thread != RT_NULL)
+		rt_thread_startup(init_thread);
 
-    return 0;
+	return 0;
 }
+
 
 

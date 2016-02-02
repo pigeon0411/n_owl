@@ -14,65 +14,6 @@
 
 
 
-
-#define	IRIS_MSG_ITERMS_MAX		5
-
-const u8 *iris_msg_string[IRIS_MSG_ITERMS_MAX]=
-{
-{"Auto"},
-{" AV "},
-{" TV "},
-{"Man "},
-{"    "},
-};
-
-
-const u8 *filter_string[]=
-{
-{" Day "},
-{"Night"},
-{"Fog1 "},
-{"Fog2 "},
-{"     "},
-};
-
-
-#define	OPT_MSG_ITERMS_MAX		25
-
-const u8 *opt_msg_string[]=
-{
-{"CALL done!"},
-{"PRESET done!"},
-	{"Set mode!"},
-	{"call mode!"},
-	{"set iris mode"},
-	{"set mode"},
-
-
-{"Tele"},//6
-{"Wide"},//7
-{"Far "},
-{"Near"},
-
-	{"set id!"},
-
-{" Day "},//11
-{"Night"},
-{"Fog1 "},
-{"Fog2 "},
-{"     "},
-
-
-{"Auto"},//16
-{" AV "},
-{" TV "},
-{"Man "},
-{"    "},
-
-
-
-};
-
 void osd_clear_x_y(u8 x_start,u8 x_end,u8 y,u8 sizef)
 {
 	u8 ii;
@@ -86,97 +27,11 @@ void osd_clear_x_y(u8 x_start,u8 x_end,u8 y,u8 sizef)
 
 
 
-void osd_opt_message_disp(u8 type,u16 wait_s)
-{
-	if(type > OPT_MSG_ITERMS_MAX-1)
-		return;
-
-	osd_line1_val_disp_clear();	
-
-	OLED_ShowString(0,OSD_VAL_START_ADDR_Y,(u8*)opt_msg_string[type],16);  
-
-
-	u16 k=wait_s;
-	while(k--)
-	{
-		key_from_wait = key_detect();
-		if(key_from_wait)
-		{
-			
-			break;
-		}
-		rt_thread_delay(50);
-
-	}
-	osd_line1_val_disp_clear();	
-
-	
-}
-
-
-const u8 *baudrate_string[]=
-{
-{"1200"},
-{"2400"},
-{"4800"},
-{"9600"},
-};
-
-
 
 
 #define	OSD_LINE1_X_POS		0
 #define	OSD_LINE4_Y_POS		6
 
-#define	OSD_BAUDRATE_ID_Y_POS		OSD_LINE4_Y_POS
-
-void osd_baudrate_disp(u16 data)
-{
-	if(data > 3)
-		return;
-	
-	OLED_ShowString(OSD_LINE1_X_POS,OSD_BAUDRATE_ID_Y_POS,(u8 *)baudrate_string[data],16);
-	OLED_ShowString(OSD_LINE1_X_POS+32,OSD_BAUDRATE_ID_Y_POS,"BPS",16);  
-
-
-	
-}
-
-#define	OSD_ID_START_ADDR		80
-#define	OSD_ID_NUM_START_ADDR	(OSD_ID_START_ADDR+24)
-
-void osd_id_disp(u8 data)
-{
-	
-	OLED_ShowString(OSD_ID_START_ADDR,OSD_BAUDRATE_ID_Y_POS,"ID:",16);  
-
-	if(data<10)
-	{
-		OLED_ShowNum(OSD_ID_NUM_START_ADDR,OSD_BAUDRATE_ID_Y_POS,0,1,16);
-		OLED_ShowNum(OSD_ID_NUM_START_ADDR+8,OSD_BAUDRATE_ID_Y_POS,0,1,16);
-		OLED_ShowNum(OSD_ID_NUM_START_ADDR+8+8,OSD_BAUDRATE_ID_Y_POS,data,1,16);
-	}
-	else if(data < 100)
-	{
-		OLED_ShowNum(OSD_ID_NUM_START_ADDR,OSD_BAUDRATE_ID_Y_POS,0,1,16);
-		OLED_ShowNum(OSD_ID_NUM_START_ADDR+8,OSD_BAUDRATE_ID_Y_POS,data,2,16);
-	}
-	else 
-	{
-		OLED_ShowNum(OSD_ID_NUM_START_ADDR,OSD_BAUDRATE_ID_Y_POS,data,3,16);
-	}
-}
-
-
-#define	OSD_CMD_START_ADDR		88
-void osd_cmd_disp(u8 *data)
-{
-	if(strlen((const char*)data) > 4)
-			return;
-	
-	OLED_ShowString(OSD_CMD_START_ADDR,0,data,16);  
-
-}
 
 
 void osd_val_disp(u8 *data,u8 cnt)
@@ -222,8 +77,7 @@ void osd_line2_disp(u8 x)
 	osd_line2_val_disp_clear();
 
 	osd_battery_mode_disp(battery_power,OSD_LINE2_X_16_POS,OSD_LINE2_Y_16_POS);
-	osd_sd_hd_mode_disp(video_sd_hd_mode,OSD_LINE2_X_16_POS,OSD_LINE2_Y_16_POS+8);
-	
+	osd_sd_hd_mode_disp(video_sd_hd_mode,OSD_LINE2_X_16_POS+88,OSD_LINE2_Y_16_POS);
 }
 
 
@@ -242,12 +96,10 @@ void osd_line_2_disp_item_clear(u8 select)
 
 		break;
 	case 2:
-		osd_iris_mode_disp(0xff);
 		break;
 	case 3:// filter
 		//osd_para_mode_disp(cam_para_mode);
 		//osd_iris_mode_disp(iris_mode);
-		osd_filter_mode_disp(0xff);
 		break;
 	default:break;
 
@@ -262,31 +114,15 @@ extern u8 osd_mid_str_buff[10];
 
 void osd_set_para_disp_line_1(u8 item)
 {
-	if(item==1)
-	{
-
-			osd_para_mode_disp_xy(cam_para_mode,0,0);
-
-	}
-
-	else if(item ==2 )
-	{
-		osd_iris_mode_disp_xy(iris_mode,0,0);
-	}
-	else if(item == 3)
-	{
-
-		osd_filter_mode_disp_xy(cam_filter_mode,0,0);
-	}
 
 }
 
 
 void osd_line1_disp(u8 x)
 {
-	osd_val_disp(osd_mid_buff,key_val_buffer_cnt);
+	//osd_val_disp(osd_mid_buff,key_val_buffer_cnt);
 
-	OLED_ShowString(0,OSD_VAL_START_ADDR_Y,osd_mid_str_buff,16);  
+	//OLED_ShowString(0,OSD_VAL_START_ADDR_Y,osd_mid_str_buff,16);  
 
 	
 }
@@ -320,198 +156,81 @@ void osd_para_mode_disp(u8 mode)
 	OLED_ShowString(OSD_PARA_MODE_X_START+32,OSD_PARA_MODE_Y,&pp,16); 
 }
 
-#define	OSD_SET_PARA_START_ADDR		8
-
-void osd_para_mode_disp_xy(u8 mode,u8 x,u8 y)
-{
-	u8 *mstr="Mode";
-	u8 pp;
-
-	if(mode > 8)
-		return;
-	OLED_ShowString(OSD_PARA_MODE_X_START,OSD_PARA_MODE_Y,mstr,16); 
-	
-	pp = mode+0x31;
-	OLED_ShowString(OSD_SET_PARA_START_ADDR,0,&pp,16); 
-}
-
-void osd_iris_mode_disp(u8 mode)
-{
-	if(mode == 0xff)
-	{
-		OLED_ShowString(OSD_IRIS_MODE_X_START,OSD_IRIS_MODE_Y,(u8*)iris_msg_string[IRIS_MSG_ITERMS_MAX-1],16); 
-
-		return;
-	}
-	if(mode > IRIS_MSG_ITERMS_MAX-1)
-		return;
-	OLED_ShowString(OSD_IRIS_MODE_X_START,OSD_IRIS_MODE_Y,(u8*)iris_msg_string[mode],16); 
-
-}
-
-
-
-void osd_iris_mode_disp_xy(u8 mode,u8 x,u8 y)
-{
-	if(mode == 0xff)
-	{
-		OLED_ShowString(OSD_IRIS_MODE_X_START,OSD_IRIS_MODE_Y,(u8*)iris_msg_string[IRIS_MSG_ITERMS_MAX-1],16); 
-
-		return;
-	}
-	if(mode > IRIS_MSG_ITERMS_MAX-1)
-		return;
-	OLED_ShowString(OSD_SET_PARA_START_ADDR,0,(u8*)iris_msg_string[mode],16); 
-
-}
-
 extern u8 cam_filter_mode;
 
-void osd_filter_mode_disp(u8 mode)
-{
-	if(mode == 0xff)
-	{
-		OLED_ShowString(OSD_FILTER_MODE_X_START,OSD_FILTER_MODE_Y,(u8*)filter_string[4],16); 
-		return;
-	}
 
-	
-	if(mode > 3)
-		return;
-	OLED_ShowString(OSD_FILTER_MODE_X_START,OSD_FILTER_MODE_Y,(u8*)filter_string[mode],16); 
-
-}
-
-void osd_filter_mode_disp_xy(u8 mode,u8 x,u8 y)
-{
-	if(mode == 0xff)
-	{
-		OLED_ShowString(OSD_FILTER_MODE_X_START,OSD_FILTER_MODE_Y,(u8*)filter_string[4],16); 
-		return;
-	}
-
-	
-	if(mode > 3)
-		return;
-	OLED_ShowString(OSD_SET_PARA_START_ADDR,0,(u8*)filter_string[mode],16); 
-
-}
 
 
 void osd_battery_mode_disp(u8 data,u8 x,u8 y)
 {
+	static u8 tmp = 1;
+
+	if(tmp)
+		{
+		tmp = 0;
 	if(data>100)
 		data = 100;
 	
-	OLED_ShowString(x,y,"Batt:  %",16); 
-	OLED_ShowNum(x+5,y,data,2,16); 
-	
+	OLED_ShowString(x,y,"Batt:   %",16); 
+	OLED_ShowNum(x+40,y,data,3,16); 
+		tmp = 1;
+		}
 		return;
 
 }
 
-
-void osd_sd_hd_mode_disp(u8 data,u8 x,u8 y)
+void osd_battery_val_disp(u8 data,u8 x,u8 y)
 {
-	if(data)	
-	{
-		OLED_ShowString(x,y,"HD/",16); 
-		OLED_ShowString(x+24,y,"SD",8); 
+	if(data>100)
+		data = 100;
+	
+	OLED_ShowNum(x+40,y,data,3,16); 
+	
+		return;
 
-	}
-	else
-	{
-		OLED_ShowString(x,y,"HD",8); 
-
-		OLED_ShowString(x+12,y,"/SD",16); 
-
-	}
-	return;
 }
 
 
 void osd_sd_hd_mode_disp_clear(u8 data,u8 x,u8 y)
 {
-	if(data)	
-	{
-		OLED_ShowString(x,y,"  /",16); 
-		OLED_ShowString(x+24,y,"SD",8); 
 
-	}
+		OLED_ShowString(x,y,"     ",16); 
+
+	return;
+}
+
+
+void osd_sd_hd_mode_disp(u8 data,u8 x,u8 y)
+{
+	osd_sd_hd_mode_disp_clear(data,x,y);
+
+	if(data)
+	{
+		OLED_ShowString(x,y,"HD/SD",16); 
+
+		}
 	else
-	{
-		OLED_ShowString(x,y,"HD",8); 
+		{
+		OLED_ShowString(x,y+1,"HD/SD",8); 
 
-		OLED_ShowString(x+12,y,"/  ",16); 
-
-	}
+		}
 	return;
 }
 
 
 
-const u8 *osd_shutter_string="S:";
-const u8 *osd_iris_string="F:";
-const u8 *auto_string="auto";
-
-
-#define	OSD_IRIS_X_START		80
-
-void osd_iris_val_disp(u8 irisv)
-{
-	if(irisv==0)
-	{
-	OLED_ShowString(OSD_IRIS_X_START,OSD_LINE3_Y_POS,(u8*)osd_iris_string,16); 
-
-	OLED_ShowString(OSD_IRIS_X_START+16,OSD_LINE3_Y_POS,(u8*)auto_string,16); 
-
-	}
-	else
-	{
-	OLED_ShowString(OSD_IRIS_X_START,OSD_LINE3_Y_POS,(u8*)osd_iris_string,16); 
-
-	OLED_ShowNum(OSD_IRIS_X_START+16,OSD_LINE3_Y_POS,irisv,irisv>9?1:2,16);
-	}
-}
-
-
-void osd_shutter_val_disp(u8 sv)
-{}
-
-u8 iris_val = 20;
-u8 shutter_val = 5;
-
-
-const u8 *filter_mode_string[]={
-	{"UV"},
-		{"BL"},
-		{"GR"},
-		{"IR"},
-
-};
 
 
 #define	PIXCEL_NUM_PER_FONT_16		8
 
+const u8 *filter_mode_string[]={
+	//{"    "},
+		{" UV "},
+		{" BL "},
+		{" GR "},
+		{" IR "},
 
-
-void filter_mode_disp(u8 x,u8 y,u8 mode)
-{
-	if(mode>3)
-		mode=3;
-	u8 i = 16;
-
-	for(u8 k=0;k<3;k++)
-	{
-		if(k == mode)
-			i = 8;
-		else
-			i = 16;
-		
-		OLED_ShowString(x+k*16,y,(u8*)filter_mode_string[k],i);
-
-	}
-}
+};
 
 void filter_mode_disp_clear(u8 x,u8 y,u8 mode)
 {
@@ -521,6 +240,30 @@ void filter_mode_disp_clear(u8 x,u8 y,u8 mode)
 	OLED_ShowString(x+mode*16,y,(u8*)"  ",16);
 
 }
+
+void filter_mode_disp(u8 x,u8 y,u8 mode)
+{
+	if(mode>3)
+		mode=3;
+	u8 i = 16;
+
+
+	for(u8 k=0;k<4;k++)
+	{
+		if(k == mode)
+			i = 16;
+		else
+			i = 8;
+
+		if(i==16)
+			OLED_ShowString(x+k*32,y,(u8*)filter_mode_string[k],i);
+		else
+			OLED_ShowString(x+k*32,y+1,(u8*)filter_mode_string[k],i);
+			
+	}
+}
+
+
 
 
 u8 filter_mode_value = 1;
@@ -550,17 +293,45 @@ void osd_line3_disp_clear_line(void)
 
 #define	OSD_LINE_4_FONT_PIXEL_X		8
 
-extern u16 num_to_baudrate(u8 numb);
 
 u8 line4_buff[16]={0};
 
+
+u8 *recorder_state_msg[]={
+		{"         "},
+	{"Recording"},
+		{"Pause"},
+		{"Prev"},
+
+	{"Next"},
+		
+	{"Play"},
+};
+
+
+extern enum KEY_STATE_TYPE recorder_work_state;
+
 void osd_line4_disp(u8 chn)
 {
+
+	static u8 tmp = 1;
+
+	if(tmp)
+		{
+		tmp = 0;
+		
+
 	OLED_Clear_line(0,6,16);
 	OLED_Clear_line(0,7,16);
+
 	
+	strcpy(line4_buff,recorder_state_msg[recorder_work_state]);
+
 	
 	OLED_ShowString(0,6,line4_buff,16);
+
+	tmp = 1;
+		}
 }
 
 
@@ -570,50 +341,29 @@ void osd_line_little_4_disp(u8 chn)
 	OLED_Clear_line(0,6,16);
 	OLED_Clear_line(0,7,16);
 	
-	osd_id_disp(domeNo);
-	osd_baudrate_disp(Baud_rate);
+
 }
 
 void osd_line_little_4_disp_item_clear(u8 select)
 {
-//	u8 i,k;
 
-	if(select>3)
-		return;
-
-
-	u8 xstart;//,xend;
-	
-	//if(select)
-	{
-		if(select==0)
-		{
-			xstart = OSD_LINE_4_LITTLE_START_X;
-			//xend = xstart + strlen((const char *)iris_msg_string[select])*8;
-
-		}
-		else
-		{
-			
-			xstart = OSD_LINE_4_FONT_PIXEL_X*((select) + strlen((const char*)iris_msg_string[select]));		
-			//xend = xstart + strlen((const char*)iris_msg_string[select]);
-		}
-		
-		//osd_clear_x_y(xstart,xend,OSD_LINE_4_LITTLE_START_Y,8); 
-		//osd_clear_x_y(xstart,xend,OSD_LINE_4_LITTLE_START_Y+1,8); 
-
-		OLED_Clear_line(xstart,OSD_LINE_4_LITTLE_START_Y,8);
-		OLED_Clear_line(xstart,OSD_LINE_4_LITTLE_START_Y+1,8);
-	}
 }
 
 
 void osd_line_1to4_all_disp(void)
 {
+	static u8 tmp = 1;
+
+	if(tmp)
+		{
+		tmp = 0;
+
 	osd_line1_disp(1);	
 	osd_line2_disp(1);
 	osd_line3_disp(2);	
 	osd_line4_disp(0);
+tmp = 1;
+		}
 }
 
 
@@ -623,12 +373,40 @@ void rt_osd_thread_entry(void* parameter)
 	while(1)
 	{
 			
-		if(menu_normal_flag == 0)
+#if 0
+
+		if(menu_normal_flag)
 		{
-			osd_line_1to4_all_disp();
+			if(cursor_ver_pos == 0)
+			{
+				osd_sd_hd_mode_disp(video_sd_hd_mode,OSD_LINE2_X_16_POS+88,OSD_LINE2_Y_16_POS);
+				rt_thread_delay(600);
+				osd_sd_hd_mode_disp_clear(video_sd_hd_mode,OSD_LINE2_X_16_POS+88,OSD_LINE2_Y_16_POS);
+			}
+			else if(cursor_ver_pos == 1)
+			{
+				filter_mode_disp(0,OSD_LINE3_Y_POS,filter_mode_value);
+				rt_thread_delay(600);
+				
+				filter_mode_disp_clear(0,OSD_LINE3_Y_POS,filter_mode_value);
+			}
+			rt_thread_delay(500);
 
 		}
-		rt_thread_delay(RT_TICK_PER_SECOND/10);
+		else
+		{
+
+			osd_battery_val_disp(video_sd_hd_mode,OSD_LINE2_X_16_POS,OSD_LINE2_Y_16_POS);
+			
+		}
+#endif		
+		
+		//osd_battery_mode_disp(battery_power,OSD_LINE2_X_16_POS,OSD_LINE2_Y_16_POS);
+		//osd_line4_disp(1);
+
+		osd_line_1to4_all_disp();
+
+		rt_thread_delay(1000*30);
 	}
 
 }

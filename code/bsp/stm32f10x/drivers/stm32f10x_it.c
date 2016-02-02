@@ -164,7 +164,7 @@ void EXTI9_5_IRQHandler(void)
     rt_interrupt_enter();
 	
 
-	ec11_key_interrupt();  
+	//ec11_key_interrupt();  
   
     /* leave interrupt */
     rt_interrupt_leave();

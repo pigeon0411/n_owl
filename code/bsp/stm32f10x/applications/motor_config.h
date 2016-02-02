@@ -1,6 +1,7 @@
 #ifndef _MOTORCONFIG_H_
 #define _MOTORCONFIG_H_
 
+#if 0
 #include "api_type.h"
 
 #define	PHOTOSWITCH_PROTECTING			1	   //若为1，则将使用GPIO去控制光电开关的工作状态，切换开/关
@@ -210,7 +211,7 @@ extern volatile MOTOR_TILT_STEPS_TYPE tiltpos;
 extern u8 focus_run_state,zoom_run_state;
 
 
-
+#endif
 #endif  /* _MOTORCONFIG_H_ */
 
 
