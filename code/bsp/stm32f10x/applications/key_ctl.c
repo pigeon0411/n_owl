@@ -10,6 +10,18 @@
 #include "key_ctl.h"
 
 
+
+
+#define	KEY_PLAYER_PIN	GPIO_Pin_13
+#define	KEY_PAUSE_PIN	GPIO_Pin_2
+#define	KEY_NEXT_PIN	GPIO_Pin_11
+#define	KEY_PREV_PIN	GPIO_Pin_10
+#define	KEY_RECORD_PIN	GPIO_Pin_12
+
+#define	KEY_ON_PIN		GPIO_Pin_1
+
+
+
 #define	KEY_PORT1		GPIOA
 #define	KEY_PORT2		GPIOB
 #define	KEY_PORT3		GPIOC
@@ -450,6 +462,19 @@ static u16 DigitFilter(u16* buf,u8 no)
 }
 
 
+
+
+enum KEY_STATE_TYPE{
+KEY_STATE_NONE,
+	KEY_STATE_RECORD,
+	KEY_STATE_PAUSE,
+	KEY_STATE_PREV,
+	KEY_STATE_NEXT,
+	KEY_STATE_PLAYER,
+
+};
+
+
 #define	RECORDER_KEY_STATE_RECORD_PIN	GPIO_Pin_8
 #define	RECORDER_KEY_STATE_PLAYER_PIN	GPIO_Pin_7
 #define	RECORDER_KEY_STATE_NEXT_PIN	GPIO_Pin_6
@@ -478,14 +503,6 @@ void recorder_key_state_pin_init(void)
 
 
 
-
-#define	KEY_PLAYER_PIN	GPIO_Pin_13
-#define	KEY_PAUSE_PIN	GPIO_Pin_2
-#define	KEY_NEXT_PIN	GPIO_Pin_11
-#define	KEY_PREV_PIN	GPIO_Pin_10
-#define	KEY_RECORD_PIN	GPIO_Pin_12
-
-#define	KEY_ON_PIN		GPIO_Pin_1
 
 void player_stop_pin_init(void)
 {
@@ -516,6 +533,15 @@ void player_stop_pin_init(void)
 
 
 u16 player_stop_key_buf[]={KEY_RECORD_PIN,KEY_PAUSE_PIN,KEY_PREV_PIN,KEY_NEXT_PIN,KEY_PLAYER_PIN};//up,down,left,right,center
+
+enum KEY_INPUT_TYPE{
+KEY_INPUT_NONE,
+KEY_RECORD,
+KEY_PAUSE,
+KEY_PREV,
+KEY_NEXT,
+KEY_PLAYER,
+};
 
 void player_stop_set(u8 mode)
 {
@@ -562,48 +588,35 @@ void key_pin_init(void)
 	player_stop_pin_init();
 }
 
-u16 key_pre = 0;
 
+
+u16 key_pre = 0;
 
 u32 key_merge(void)
 {
-	u32 data = 0,data2 = 0,data3 = 0,data4 = 0;
+	u32 data = 0,data2 = 0;
 
-	u32 key_tmp;
 	
 	//PA,PB,PC
-	data = GPIO_ReadInputDataBit(KEY_PORT1);
-	data2 = GPIO_ReadInputData(KEY_PORT2);	
-	data3 = GPIO_ReadInputData(KEY_PORT3);	
-	data4 = GPIO_ReadInputData(KEY_PORT4);	
+	data = GPIO_ReadInputDataBit(GPIOB,KEY_RECORD_PIN);
+	data2 = GPIO_ReadInputDataBit(GPIOB,KEY_PAUSE_PIN);	
+
+	data |= data2<<1;
+	
+	data2 = GPIO_ReadInputDataBit(GPIOB,KEY_PREV_PIN);	
+	data |= data2<<2;
+	data2 = GPIO_ReadInputDataBit(GPIOB,KEY_NEXT_PIN);	
+	data |= data2<<3;
+	data2 = GPIO_ReadInputDataBit(GPIOB,KEY_PLAYER_PIN);	
+	data |= data2<<4;
 		
-	key_tmp = (data2>>15)&0x0001;//0
-	key_tmp |= (data3>>5)&0x0006;//1-2
-	key_tmp |= (data2>>11)&0x0008;// 3
-	key_tmp |= (data2>>9)&0x0010;// 4
-	key_tmp |= (data2>>7)&0x0020;// 5
-	key_tmp |= (data2>>4)&0x0040;// 6
 
-	key_tmp |= (data2<<5)&0x0080;//7
-	key_tmp |= (data2<<7)&0x0100;//8
-	key_tmp |= (data<<3)&0x0200;//9
 
-	key_tmp |= (data3<<2)&0x00000400;//10
-	key_tmp |= (data3<<2)&0x00000800;//11
-
-	key_tmp |= (data<<4)&0x1000;//12
-	key_tmp |= (data<<2)&0x2000;//13
-	key_tmp |= (data<<2)&0x4000;//14
-
-	key_tmp |= (data2<<4)&0x8000;//15
-	key_tmp |= (data2<<16)&0x10000;//16
-
-	key_tmp |= (data<<13)&0x20000;//17
-	key_tmp |= (data<<13)&0x40000;//18
-	key_tmp |= (data<<12)&0x80000;//19
-
-	return key_tmp;
+	return data;
 }
+
+
+#define	KEY_INPUT_NUM_MAX		5
 
 //返回0为无按键，返回非0值，则为对应的按键号
 static u32 key_ctl_check(void)
@@ -613,7 +626,7 @@ static u32 key_ctl_check(void)
 	static u32 long_press_cnt = 0;// 50ms
 	
 	key_tmp = key_merge();
-	for(i=0;i<20;i++)
+	for(i=0;i<KEY_INPUT_NUM_MAX;i++)
 	{
 		if(((key_tmp>>i)&0x0001)==0)
 		{
@@ -643,7 +656,7 @@ static u32 key_ctl_check(void)
 	}
 
 
-	if((key_pre && key_pre!=(i+1))||(key_pre && i==20))
+	if((key_pre && key_pre!=(i+1))||(key_pre && i==KEY_INPUT_NUM_MAX))
 	{
 		i = key_pre|0x8000;
 		key_pre = 0;
@@ -793,232 +806,105 @@ u16 num_to_baudrate(u8 numb)
 }
 
 
+u8 cursor_hor_pos =0;
+u8 cursor_ver_pos = 0;
+
+void exit_menu(void)
+{
+	cursor_hor_pos =0;
+	cursor_ver_pos = 0;	
+	menu_normal_flag = 0;
+
+
+}
+
 void key_analyze(u16 val)
 {
 
-	switch(val)
+	if(menu_normal_flag)
 	{
-	case key_to_release(KEY_CALL):
-
-		if(key_val_buffer_cnt)
-		{pelcod_call_pre_packet_send((u8)key_num_val);
-
-		osd_opt_message_disp(0,OSD_MSG_DISP_MAX_SECOND);
-		}
-		key_value_all_clear();
-
 		
-		break;
-	case key_to_release(KEY_PRESET):
-		if(key_val_buffer_cnt)
-		{pelcod_set_pre_packet_send((u8)key_num_val);
-		osd_opt_message_disp(1,OSD_MSG_DISP_MAX_SECOND);}
-		key_value_all_clear();
-
+		switch(val)
+			{
+			case key_to_release(KEY_RECORD):
+				cursor_ver_pos++;
+				if(cursor_ver_pos > 1)
+					cursor_ver_pos = 1;
 		
-		break;
-
-	case key_to_release(KEY_CAM):
-
-		if((key_val_buffer_cnt>0)&&(key_val_buffer_cnt<4))
-		{if(key_num_val < 256)
-		{
-			domeNo = key_num_val;
-
-			//osd_opt_message_disp(0,OSD_MSG_DISP_MAX_SECOND);
-
-			osd_line_little_4_disp(1);
-
-			key_value_all_clear();
-		}
-		}
-		else if(key_val_buffer_cnt==0)
-		{
-			if(key_val_buffer_func == 0)
-			{key_val_buffer_func = key_to_release(KEY_CAM);
-			strcat(osd_mid_str_buff," ID+");
-			osd_line1_disp(32);
-			}
-
-		}
-		break;
-	case key_to_release(KEY_IRIS):
-		if(key_num_val==0)
-			key_value_all_clear();
-		if(key_num_val > 0 && key_num_val < 5)
-		{
-			
-			{
-				iris_mode = key_num_val-1;
-				if(iris_mode>3)
-					iris_mode=0;
-
-				if(iris_mode==0)
-					pelcod_set_pre_packet_send(128);
-				else if(iris_mode==1)
-					pelcod_call_pre_packet_send(128);
-				else if(iris_mode==2)
-					pelcod_call_pre_packet_send(127);
-				else if(iris_mode==3)
-					pelcod_call_pre_packet_send(126);
-				osd_line2_disp(1);
-				osd_opt_message_disp(16+iris_mode,OSD_MSG_DISP_MAX_SECOND);
-			key_value_all_clear();
-			}
-
-			
-		}
-		break;
-
-	case key_to_release(KEY_MODE):
-
-		if(key_num_val==0)
-			key_value_all_clear();
-		if(key_num_val > 0 && key_num_val < 9)
-		{	
-			pelcod_call_pre_packet_send((u8)key_num_val+200);
-			cam_para_mode = key_num_val-1;
-			osd_line2_disp(key_num_val);
-			osd_opt_message_disp(3,OSD_MSG_DISP_MAX_SECOND);
-			key_value_all_clear();
-
-		}
-		else if(key_val_buffer_cnt==0)
-		{
-			if(key_val_buffer_func == 0)
-			{key_val_buffer_func = key_to_release(KEY_MODE);
-			strcat(osd_mid_str_buff,"Mode+");
-			osd_line1_disp(32);
-			}
-
-		}
-		//osd_opt_message_disp(0,OSD_MSG_DISP_MAX_SECOND);
-		break;
-	case key_to_release(KEY_SETUP):
-			if(key_num_val > 0 && key_num_val < 9)
-			{
-				if(key_val_buffer_func == key_to_release(KEY_MODE))
-				{
-					if(key_num_val <= 4)
-					{
-					pelcod_set_pre_packet_send(255);
-					pelcod_set_pre_packet_send(253);
-				pelcod_set_pre_packet_send((u8)key_num_val+200);
-					pelcod_set_pre_packet_send(253);
-					}
-					else
-					{
-					pelcod_set_pre_packet_send(255);	
-					pelcod_set_pre_packet_send((u8)key_num_val+200);
-					}
-				osd_line3_disp(1);
-				osd_opt_message_disp(2,OSD_MSG_DISP_MAX_SECOND);
 				
-				if(wait_device_reply(cmd_buff,7,OSD_MSG_DISP_MAX_SECOND))
+				break;
+			case key_to_release(KEY_PAUSE):
+				
+				if(cursor_ver_pos > 0)
+					cursor_ver_pos--;
+					
+				break;
+		
+			case key_to_release(KEY_PLAYER):
+		
+				if(cursor_ver_pos==0)
 				{
-					;//osd_opt_message_disp(2,OSD_MSG_DISP_MAX_SECOND);
-
-				}
-				else
-					{
+					video_sd_hd_mode = cursor_hor_pos;
 					
 				}
-				}
-
-			}
-
-			if(key_val_buffer_func == key_to_release(KEY_IRIS))
-			{
-				if(iris_mode==0)
-					pelcod_set_pre_packet_send(128);
-				else if(iris_mode==1)
-					pelcod_call_pre_packet_send(128);
-				else if(iris_mode==2)
-					pelcod_call_pre_packet_send(127);
-				else if(iris_mode==3)
-					pelcod_call_pre_packet_send(126);
-				osd_line2_disp(1);
-				iris_set_ok = 1;
-				//osd_opt_message_disp(4,OSD_MSG_DISP_MAX_SECOND);
-			}
-
-			if(key_val_buffer_func == key_to_release(KEY_FILTER))
-			{
-				pelcod_call_pre_packet_send(cam_filter_mode+80);
-				osd_line2_disp(1);
-				cam_filter_set_ok = 1;
-			}
-
-			if(key_val_buffer_func == key_to_release(KEY_CAM))
-			{
-				if(key_num_val<256)
+				else if(cursor_ver_pos==1)
 				{
-					u8 dometmp;
-
-					dometmp = domeNo;
-					domeNo = 255;
-					pelcod_set_pre_packet_send(255);
-					pelcod_set_pre_packet_send(255);
-					pelcod_set_pre_packet_send(key_num_val);
-					pelcod_set_pre_packet_send(255);
-					osd_opt_message_disp(10,OSD_MSG_DISP_MAX_SECOND);
-
-					domeNo = key_num_val;
-					osd_line_little_4_disp(0);
+					filter_mode_value = cursor_hor_pos;
+					
 				}
-				osd_line2_disp(1);
-				cam_filter_set_ok = 1;
+				
+				break;
+			case key_to_release(KEY_NEXT):
+
+				if(cursor_ver_pos==0)
+				{
+					if(cursor_ver_pos < 1)
+						cursor_ver_pos++;
+					
+				}
+				else if(cursor_ver_pos==1)
+				{
+					if(cursor_ver_pos < 4)
+						cursor_ver_pos++;
+					
+				}
+				break;
+		
+			case key_to_release(KEY_PREV):
+		
+					if(cursor_ver_pos > 0)
+						cursor_ver_pos--;
+					
+
+				break;
+					
+		
+			case key_to_long(KEY_PLAYER):
+				cursor_hor_pos =0;
+				cursor_ver_pos = 0;	
+				menu_normal_flag = 0;
+				break;
+				
+			default:
+				break;
 			}
 
-			
-			key_value_all_clear();
-			break;
-			
-	case key_to_release(KEY_ESC):
-		key_value_all_clear();
-		break;
-
-	case key_to_release(KEY_FILTER):
-		if(key_num_val==0)
-			key_value_all_clear();
-		if(key_num_val > 0 && key_num_val < 5)
-		{
-			cam_filter_mode = key_num_val-1;
-			pelcod_call_pre_packet_send(cam_filter_mode+80);
-				osd_line2_disp(1);
-				cam_filter_set_ok = 1;
-
-				osd_opt_message_disp(11+cam_filter_mode,OSD_MSG_DISP_MAX_SECOND);
-			key_value_all_clear();
-		}
-		break;
-	case key_to_long(KEY_SETUP):
-		switch(key_num_val )
-		{
-		case 1200:
-		case 2400:
-		case 9600:
-		case 4800:
-			Baud_rate = baudrate_to_num(key_num_val);
-			set_rs485_uart_baudrate();
-			osd_line_little_4_disp(0);
-			break;
-		default:break;
-		}
-
-		key_value_all_clear();
-		break;
-
-	case key_to_long(KEY_IRIS):
-		iris_mode_setup = 1;	
-		iris_mode = 0x80;
-		osd_line2_disp(1);
-
-		break;
-		
-	default:
-		break;
 	}
+	else
+	{
+		if(val == key_to_long(KEY_PLAYER))
+		{
+			menu_normal_flag = 1;
+			cursor_hor_pos =0;
+				cursor_ver_pos = 0;	
+		}
+		else
+		{
+			player_stop_set((u8)val&0xff);
+		}
+	}
+
+	
 
 
 }
@@ -1030,17 +916,12 @@ void key_handle(u16 val)
 {
 	u16 tmp;
 
-	if(menu_normal_flag)
-	{
-		
 
-	}
-	else
-	{
-		
-		player_stop_set(val);
+	key_analyze(val);
 
-	}
+	
+
+
 	
 }
 
@@ -1050,16 +931,12 @@ u16 key_detect(void)
 	u32 tmp;
 
 	tmp = key_ctl_check();
-	if((tmp>=key_to_release(KEY_1)) && (tmp<=key_to_release(KEY_0)))
-		tmp = tmp&(~0x9000);
+
 	return(tmp);
 
 }
 
 u16 key_from_wait = 0;
-
-
-const u8* wifi_enter_at_mode="+++AtCmd\\r\\n";
 
 
 
@@ -1095,37 +972,31 @@ void rt_key_thread_entry(void* parameter)
 }
 
 
-u8 iris_set_ok=1;
-u8 cam_filter_set_ok = 1;
 
 void rt_blink_thread_entry(void* parameter)
 {
-	static  u8 state_pre,cam_filter_pre;
+	static  u8 state_pre;
 	
 	while(1)
 	{
-		cam_filter_pre = cam_filter_set_ok;
-		state_pre = iris_set_ok;
-
-		if(!iris_set_ok)
+		if(menu_normal_flag)
 		{
-			osd_line2_disp(1);
-			rt_thread_delay(600);
-			osd_line_2_disp_item_clear(2);
-		}
 
-		if(!state_pre && iris_set_ok)
-			osd_line2_disp(1);
-		
-		if(!cam_filter_set_ok)
-		{
-			osd_line2_disp(1);
-			rt_thread_delay(600);
-			osd_line_2_disp_item_clear(3);
-		}
+			if(cursor_ver_pos == 0)
+			{
+				osd_line2_disp(1);
+				rt_thread_delay(600);
+				osd_sd_hd_mode_disp_clear(cursor_hor_pos,OSD_LINE2_X_16_POS,OSD_LINE2_Y_16_POS+8);
+			}
+			else if(cursor_ver_pos == 1)
+			{
+				osd_line3_disp(1);
+				rt_thread_delay(600);
+				
+				filter_mode_disp_clear(0,OSD_LINE3_Y_POS,filter_mode_value);
+			}
 
-		if(!cam_filter_pre && cam_filter_set_ok)
-			osd_line2_disp(1);
+		}
 		rt_thread_delay(600);
 	}
 

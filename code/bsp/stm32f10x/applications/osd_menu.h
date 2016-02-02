@@ -29,6 +29,10 @@ extern void osd_para_mode_disp_xy(u8 mode,u8 x,u8 y);
 extern void osd_iris_mode_disp_xy(u8 mode,u8 x,u8 y);
 extern void osd_filter_mode_disp_xy(u8 mode,u8 x,u8 y);
 
+extern void osd_sd_hd_mode_disp_clear(u8 data,u8 x,u8 y);
+extern void osd_sd_hd_mode_disp(u8 data,u8 x,u8 y);
+extern void filter_mode_disp_clear(u8 x,u8 y,u8 mode);
+extern void osd_battery_mode_disp(u8 data,u8 x,u8 y);
 
 
 #define	LINE3_SPACE		8

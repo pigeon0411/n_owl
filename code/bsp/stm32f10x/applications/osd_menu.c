@@ -414,13 +414,40 @@ void osd_battery_mode_disp(u8 data,u8 x,u8 y)
 void osd_sd_hd_mode_disp(u8 data,u8 x,u8 y)
 {
 	if(data)	
-		OLED_ShowString(x,y,"HD",16); 
+	{
+		OLED_ShowString(x,y,"HD/",16); 
+		OLED_ShowString(x+24,y,"SD",8); 
 
+	}
 	else
-		OLED_ShowString(x,y,"SD",16); 
-		return;
+	{
+		OLED_ShowString(x,y,"HD",8); 
 
+		OLED_ShowString(x+12,y,"/SD",16); 
+
+	}
+	return;
 }
+
+
+void osd_sd_hd_mode_disp_clear(u8 data,u8 x,u8 y)
+{
+	if(data)	
+	{
+		OLED_ShowString(x,y,"  /",16); 
+		OLED_ShowString(x+24,y,"SD",8); 
+
+	}
+	else
+	{
+		OLED_ShowString(x,y,"HD",8); 
+
+		OLED_ShowString(x+12,y,"/  ",16); 
+
+	}
+	return;
+}
+
 
 
 const u8 *osd_shutter_string="S:";
@@ -470,12 +497,28 @@ const u8 *filter_mode_string[]={
 
 void filter_mode_disp(u8 x,u8 y,u8 mode)
 {
+	if(mode>3)
+		mode=3;
+	u8 i = 16;
 
-	OLED_ShowString(x,y,(u8*)filter_mode_string[0],16);
-	OLED_ShowString(x+PIXCEL_NUM_PER_FONT_16,y,(u8*)filter_mode_string[1],16);
-	OLED_ShowString(x+PIXCEL_NUM_PER_FONT_16*2,y,(u8*)filter_mode_string[2],16);
-	OLED_ShowString(x+PIXCEL_NUM_PER_FONT_16*3,y,(u8*)filter_mode_string[3],16);
-	
+	for(u8 k=0;k<3;k++)
+	{
+		if(k == mode)
+			i = 8;
+		else
+			i = 16;
+		
+		OLED_ShowString(x+k*16,y,(u8*)filter_mode_string[k],i);
+
+	}
+}
+
+void filter_mode_disp_clear(u8 x,u8 y,u8 mode)
+{
+	if(mode>3)
+		mode=3;
+		
+	OLED_ShowString(x+mode*16,y,(u8*)"  ",16);
 
 }
 
@@ -509,14 +552,15 @@ void osd_line3_disp_clear_line(void)
 
 extern u16 num_to_baudrate(u8 numb);
 
+u8 line4_buff[16]={0};
 
 void osd_line4_disp(u8 chn)
 {
 	OLED_Clear_line(0,6,16);
 	OLED_Clear_line(0,7,16);
 	
-
 	
+	OLED_ShowString(0,6,line4_buff,16);
 }
 
 
@@ -572,11 +616,37 @@ void osd_line_1to4_all_disp(void)
 	osd_line4_disp(0);
 }
 
+
+void rt_osd_thread_entry(void* parameter)
+{
+
+	while(1)
+	{
+			
+		if(menu_normal_flag == 0)
+		{
+			osd_line_1to4_all_disp();
+
+		}
+		rt_thread_delay(RT_TICK_PER_SECOND/10);
+	}
+
+}
+
 void osd_init(void)
 {
 	OLED_Init();			//3?¨º??¡¥OLED  
 	OLED_Clear()  	; 
 	osd_line_1to4_all_disp();
+
+	rt_thread_t init_thread;
+
+
+	init_thread = rt_thread_create("osd",
+								   rt_osd_thread_entry, RT_NULL,
+								   512, 10, 5);
+	if (init_thread != RT_NULL)
+		rt_thread_startup(init_thread);
 
 
 }
